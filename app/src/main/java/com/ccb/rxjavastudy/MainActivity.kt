@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         //rxjava+retrofit
+        Log.e("main","启动")
         initNet()
 
     }
@@ -36,20 +37,57 @@ class MainActivity : AppCompatActivity() {
 
         }
 
-        val subscribe = getApi.getBaiduNew("https://mp.weixin.qq.com/s/XAZCzxTDc8XISfWzsjpsng")
+        /**
+         * 连续请求A-B,例如先注册，注册成功登陆
+         * 1.注册成功->登录
+         * 2.注册失败：断流，不进行登陆请求
+         * 3.注册请求异常：onErrorResumeNext,直接发送异常
+         */
+        val subscribe = getApi.getBaiduNew("http://gank.io/api/today")
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .doOnNext {
-                Log.e("main","first,$it")
+            .doOnSubscribe {
+                compositeDisposable.add(it)
             }
+            .doOnNext() {
+                Log.e("main", "firstOnNext")
+                compositeDisposable.clear()
+            }
+            .onErrorResumeNext(object : Function<Throwable, Observable<String>> {
+                override fun apply(t: Throwable): Observable<String> {
+                    Log.e("main", "throwable,${t.message}")
+                    return Observable.error(t)
+                }
+
+            })
             .observeOn(Schedulers.io())
             .concatMap(Function<String, ObservableSource<String>> {
-                return@Function getApi.getBaiduNew("http://news.baidu.com/")
+                //注册成功
+                val isSuccess = true
+                if (isSuccess) {
+                    return@Function getApi.getBaiduNew("http://news.baidu.com/")
+                } else {
+                    return@Function Observable.empty()
+                }
+
             })
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe {
-                Log.e("main","second,$it")
-            }
+            .subscribe(object : Observer<String> {
+                override fun onComplete() {
+                }
+
+                override fun onSubscribe(d: Disposable) {
+                }
+
+                override fun onNext(t: String) {
+                    Log.e("main", "secondOnNext")
+                }
+
+                override fun onError(e: Throwable) {
+                    Log.e("main", "throwable2,${e.message}")
+                }
+
+            })
     }
 
     fun testMap() {
@@ -63,11 +101,11 @@ class MainActivity : AppCompatActivity() {
                 return t.toString()
             }
         }).subscribe {
-            Log.e("main","map:$it")
+            Log.e("main", "map:$it")
         }
     }
 
-    fun testFlatMap(){
+    fun testFlatMap() {
 
     }
 
