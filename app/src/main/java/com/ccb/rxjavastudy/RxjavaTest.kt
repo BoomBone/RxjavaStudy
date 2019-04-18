@@ -3,8 +3,10 @@ package com.ccb.rxjavastudy
 import android.util.Log
 import io.reactivex.*
 import io.reactivex.disposables.Disposable
+import io.reactivex.functions.BiFunction
 import io.reactivex.functions.Consumer
 import io.reactivex.functions.Function
+import io.reactivex.schedulers.Schedulers
 import java.lang.Exception
 import java.util.concurrent.TimeUnit
 
@@ -13,8 +15,10 @@ import java.util.concurrent.TimeUnit
  * map,flatmap
  */
 fun main() {
-    testMap()
+//    testMap()
 //    testFlatMap()
+    testZip()
+    Thread.sleep(10000)
 }
 
 fun testMap() {
@@ -76,5 +80,50 @@ fun testFlatMap() {
 
     }).subscribe { t ->
         println("flatMap=$t")
+    }
+}
+
+fun testZip() {
+    val observable = Observable.create(ObservableOnSubscribe<Int> {
+        it.onNext(1)
+        println("emit 1")
+        Thread.sleep(1000L)
+
+        it.onNext(2)
+        println("emit 2")
+        Thread.sleep(1000L)
+
+        it.onNext(3)
+        println("emit 3")
+        Thread.sleep(1000L)
+
+        it.onNext(4)
+        println("emit 4")
+        Thread.sleep(1000L)
+
+    }).subscribeOn(Schedulers.io())
+
+    val observable2 = Observable.create(ObservableOnSubscribe<String> {
+        it.onNext("A")
+        println("emit A")
+        Thread.sleep(1000L)
+
+        it.onNext("B")
+        println("emit B")
+        Thread.sleep(1000L)
+
+        it.onNext("C")
+        println("emit C")
+        Thread.sleep(1000L)
+
+    }).subscribeOn(Schedulers.io())
+
+    val subscribe = Observable.zip(observable, observable2, object : BiFunction<Int, String, String> {
+        override fun apply(t1: Int, t2: String): String {
+            return "$t1$t2"
+        }
+
+    }).subscribe {
+        println(it)
     }
 }
