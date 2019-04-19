@@ -7,6 +7,7 @@ import io.reactivex.*
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.CompositeDisposable
 import io.reactivex.disposables.Disposable
+import io.reactivex.functions.Consumer
 import io.reactivex.functions.Function
 import io.reactivex.schedulers.Schedulers
 import retrofit2.Retrofit
@@ -51,7 +52,6 @@ class MainActivity : AppCompatActivity() {
             }
             .doOnNext() {
                 Log.e("main", "firstOnNext")
-                compositeDisposable.clear()
             }
             .onErrorResumeNext(object : Function<Throwable, Observable<String>> {
                 override fun apply(t: Throwable): Observable<String> {
@@ -72,21 +72,10 @@ class MainActivity : AppCompatActivity() {
 
             })
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe(object : Observer<String> {
-                override fun onComplete() {
-                }
-
-                override fun onSubscribe(d: Disposable) {
-                }
-
-                override fun onNext(t: String) {
-                    Log.e("main", "secondOnNext")
-                }
-
-                override fun onError(e: Throwable) {
-                    Log.e("main", "throwable2,${e.message}")
-                }
-
+            .subscribe({
+                Log.e("main", "secondOnNext")
+            }, {
+                Log.e("main", "throwable2,${it.message}")
             })
     }
 
